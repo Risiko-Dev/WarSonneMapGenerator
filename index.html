@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maze Recon v2 — Labyrinth-Generator</title>
+
+<!-- Schriften -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Design -->
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     KOPFLEISTE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<header>
+  <div>
+    <div class="eyebrow">Grid-First · Block-Maze v2</div>
+    <h1>MAZE RECON</h1>
+  </div>
+  <div class="sub">
+    Zellbasiertes Labyrinth — rotationssymmetrisch, scharfe Wände.<br>
+    Räume, Hauptrouten, Wasser, Scavenger &amp; Ressourcen wachsen aus dem Gitter.
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     ARBEITSBEREICH
+     ═══════════════════════════════════════════════════════════════════════ -->
+<main>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════╗
+       ║  STEUERUNG                                                         ║
+       ╚══════════════════════════════════════════════════════════════════════╝ -->
+  <section class="col controls">
+
+    <!-- ─── Spieler & Seed ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">🎮</span>
+        <h3>Spieler &amp; Seed</h3>
+      </div>
+      <div class="field">
+        <label for="players">Spieler</label>
+        <select id="players">
+          <option value="rand" selected>🎲 Zufällig (2–9)</option>
+          <option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option>
+          <option value="6">6</option><option value="7">7</option>
+          <option value="8">8</option><option value="9">9</option>
+        </select>
+        <p class="hint">Zufällige Aufstellung. Basen liegen außerhalb des Zentrums und der Ecken — der Weg zu den Ressourcen führt lang &amp; verschlungen durchs Labyrinth.</p>
+      </div>
+      <div class="field">
+        <label for="seed">Seed</label>
+        <div class="row2">
+          <input type="number" id="seed" value="12345" aria-label="Seed-Wert" />
+          <button class="btn ghost" id="reseed" style="width:auto;padding:9px 14px;">🎲 Neu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Labyrinth-Struktur ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">🧱</span>
+        <h3>Labyrinth-Struktur</h3>
+      </div>
+      <div class="field">
+        <label for="cells">Zellen pro Achse <span class="val" id="cellsV">31</span></label>
+        <input type="range" id="cells" min="21" max="51" step="2" value="31" />
+      </div>
+      <div class="field">
+        <label for="scale">Gang-Breite (WZ-Kacheln) <span class="val" id="scaleV">4</span></label>
+        <input type="range" id="scale" min="1" max="5" step="1" value="4" />
+        <p class="hint" id="scaleHint">Skaliert die Karte für den .wz-Export. Breitere Gänge = mehr Platz für Einheiten. Maximal 256×256 Kacheln.</p>
+      </div>
+      <div class="field">
+        <label for="braid">Verschlungenheit <span class="val" id="braidV">0.00</span></label>
+        <input type="range" id="braid" min="0" max="0.6" step="0.01" value="0" />
+        <p class="hint">0 = Perfektes Labyrinth (nur Sackgassen) · höher = mehr Schleifen &amp; alternative Wege.</p>
+      </div>
+      <div class="field">
+        <label for="rings">Ring-Verbindungen <span class="val" id="ringsV">0</span></label>
+        <input type="range" id="rings" min="0" max="4" step="1" value="0" />
+        <p class="hint">Symmetrische Durchbrüche zwischen den Sektoren → mehrere Routen zum Zentrum.</p>
+      </div>
+    </div>
+
+    <!-- ─── Räume & Routen ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">🏛️</span>
+        <h3>Räume &amp; Routen</h3>
+      </div>
+      <div class="field">
+        <label for="hubR">Zentrum-Größe <span class="val" id="hubRV">3</span></label>
+        <input type="range" id="hubR" min="1" max="6" step="1" value="3" />
+      </div>
+      <div class="field">
+        <label for="baseR">Basis-Größe <span class="val" id="baseRV">2</span></label>
+        <input type="range" id="baseR" min="1" max="4" step="1" value="2" />
+      </div>
+      <div class="field">
+        <label>Hauptroute</label>
+        <div class="seg" id="mainSeg">
+          <button data-v="on" aria-pressed="true">✓ Hervorheben</button>
+          <button data-v="off" aria-pressed="false">Aus</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Wasser & Brücken ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">💧</span>
+        <h3>Wasser &amp; Brücken</h3>
+      </div>
+      <div class="field">
+        <label>Geflutete Korridore</label>
+        <div class="seg" id="waterSeg">
+          <button data-v="on" aria-pressed="true">An</button>
+          <button data-v="off" aria-pressed="false">Aus</button>
+        </div>
+        <p class="hint">Blockiert Bodeneinheiten — nur Brücken (Choke) oder Hover-Einheiten passieren.</p>
+      </div>
+      <div class="field">
+        <label for="waterW">Wasser-Dichte <span class="val" id="waterWV">0.5</span></label>
+        <input type="range" id="waterW" min="0" max="3" step="0.5" value="0.5" />
+        <p class="hint">Flutet zufällige Gänge — Hauptrouten bleiben immer trocken.</p>
+      </div>
+    </div>
+
+    <!-- ─── Scavenger ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">☠️</span>
+        <h3>Scavenger</h3>
+      </div>
+      <div class="field">
+        <label>Scavenger-Camps</label>
+        <div class="seg" id="scavSeg">
+          <button data-v="off" aria-pressed="true">Aus</button>
+          <button data-v="on" aria-pressed="false">An</button>
+        </div>
+        <p class="hint">Platziert 2×2 Scavenger-Außenposten in Sackgassen nahe den Ressourcen. Symmetrisch gespiegelt.</p>
+      </div>
+    </div>
+
+    <!-- ─── Export-Einstellungen ─── -->
+    <div class="group">
+      <div class="ghead">
+        <span class="num">📦</span>
+        <h3>Export (.wz)</h3>
+      </div>
+      <div class="field">
+        <label for="wallHeight">Wand-Höhe <span class="val" id="wallHeightV">255</span></label>
+        <input type="range" id="wallHeight" min="100" max="255" step="5" value="255" />
+        <p class="hint">Klippenhöhe im WZ-Export. 255 = unpassierbar für alle Bodeneinheiten.</p>
+      </div>
+      <div class="field">
+        <label for="groundHeight">Boden-Höhe <span class="val" id="groundHeightV">50</span></label>
+        <input type="range" id="groundHeight" min="20" max="120" step="5" value="50" />
+        <p class="hint">Höhenlevel des begehbaren Geländes im WZ-Export.</p>
+      </div>
+    </div>
+
+    <!-- ─── Knopf ─── -->
+    <button class="btn" id="gen">⚡ Karte generieren</button>
+
+  </section>
+
+  <!-- ╔══════════════════════════════════════════════════════════════════════╗
+       ║  KARTE & STATUS                                                    ║
+       ╚══════════════════════════════════════════════════════════════════════╝ -->
+  <section class="col stage">
+    <div class="console">
+      <canvas id="map" width="590" height="590"></canvas>
+    </div>
+
+    <div class="status">
+      <span class="status-text" id="statusText">🚀 Bereit — Parameter anpassen und auf Generieren klicken.</span>
+      <span class="pill ok" id="verdict">✓ Alles ok</span>
+    </div>
+
+    <!-- Validierung: zeigt für jede Prüfung Wert und Ergebnis -->
+    <div class="checks" id="checks"></div>
+
+    <div class="legend">
+      <span><i class="sw" style="background:#171d24"></i> Wand</span>
+      <span><i class="sw" style="background:#9c8a63"></i> Gang</span>
+      <span><i class="sw" style="background:#e0a34e"></i> Hauptroute</span>
+      <span><i class="sw" style="background:#b5896a"></i> Zentrum</span>
+      <span><i class="dot" style="background:#7FB069"></i> Basis</span>
+      <span><i class="sw" style="background:#2c566f"></i> Wasser</span>
+      <span><i class="sw" style="background:#9a7a52"></i> Brücke</span>
+      <span><i class="dot" style="background:#56a06e"></i> Ressource</span>
+      <span><i class="sw" style="background:#948c84"></i> Scavenger</span>
+    </div>
+
+    <button class="btn" id="dl" style="max-width:620px;">📥 Karte herunterladen (.wz)</button>
+  </section>
+
+</main>
+
+<!-- Programm -->
+<script src="app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+# ─── OS ───
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ─── Editor / IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# ─── Node / Tooling (falls später ein Build dazukommt) ───
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+
+# ─── Logs & Temp ───
+*.log
+*.tmp
+*.bak
+
+# ─── Generierte Karten ───
+*.wz
